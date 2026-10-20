@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Planet,morphPoint} from '../dist/globe.js';
+import {Planet,morphPoint,contactPoint} from '../dist/globe.js';
 import {particleColour,PointerField} from '../dist/pointer-field.js';
 import {brands,renderView,parseRoute} from '../dist/content.js';
 
@@ -72,4 +72,20 @@ test('particle drawing samples the artwork alpha and clips the final dots to it'
   const pointer=Object.assign(Object.create(PointerField.prototype),{stage:{getBoundingClientRect:()=>({left:0,top:0}),querySelector:()=>null},planet:{ready:false,paused:true},motion:{matches:false},size:220,x:110,y:110,tx:110,ty:110,alpha:1,inside:true,last:0,time:0,canvas:{style:{}},ctx,probe:{},sample:{clearRect(){},getImageData:()=>({data:pixels})}});
   pointer.frame(1000);assert(arcs.length>0);assert(arcs.every(p=>p.x>=94.5&&p.x<=125&&p.y>=94.5&&p.y<=125));assert(arcs.every(p=>p.r<1.4));assert.deepEqual(ops,['destination-in']);assert.equal(ctx.globalCompositeOperation,'source-over');
  }finally{globalThis.document=previousDocument;globalThis.requestAnimationFrame=previousRaf;}
+});
+
+
+test('CSS globe resizing preserves its drawing buffer instead of blanking every frame',()=>{
+ let writes=0,side=500;
+ const canvas={getBoundingClientRect:()=>({width:side,height:side}),set width(v){writes++;this.w=v;},set height(v){writes++;this.h=v;}};
+ const planet=Object.assign(Object.create(Planet.prototype),{canvas,dpr:1.5});
+ planet.resize();assert.equal(writes,2);side=430;planet.resize();side=400;planet.resize();assert.equal(writes,2);assert.equal(planet.width,400);
+});
+
+test('Contact uses a distinct short particle settle and keeps the sphere visible immediately',()=>{
+ const planet=Object.assign(Object.create(Planet.prototype),{paused:false,reduced:false,ready:false});
+ planet.reveal('contact');assert.equal(planet.duration,.42);assert.equal(planet.transitionKind,'contact');
+ const start=contactPoint(100,150,14,0,200,200,150),end=contactPoint(100,150,14,1,200,200,150);
+ assert(Math.hypot(start.x-100,start.y-150)>30);assert.equal(end.x,100);assert.equal(end.y,150);
+ const brandsPage=renderView(parseRoute('#brands'));assert(brandsPage.includes('The ARCWORC ecosystem.'));assert(!brandsPage.includes('ARCWORC<br>'));
 });

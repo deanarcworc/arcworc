@@ -20,6 +20,7 @@ export class PointerField{
  start(){if(!this.raf&&!document.hidden){this.last=0;this.raf=requestAnimationFrame(t=>this.frame(t));}}
  frame(now){
   if(document.body.dataset.view!=='home'||this.motion.matches){this.hide();return;}
+  if(this.last&&now-this.last<30){this.raf=requestAnimationFrame(t=>this.frame(t));return;}
   const dt=this.last?Math.min((now-this.last)/1000,.05):1/60;
   this.last=now;this.raf=0;const visible=this.inside&&!this.motion.matches;
   this.alpha+=(Number(visible)-this.alpha)*(1-Math.exp(-dt*16));
@@ -38,7 +39,7 @@ export class PointerField{
   const wordmark=this.stage.querySelector('.wordmark-fill');
   if(wordmark?.complete&&wordmark.naturalWidth){
    paint(wordmark);const r=wordmark.getBoundingClientRect(),mark=wordmark.parentElement;
-   mark.style.setProperty('--mx',`${this.x+origin.left-r.left}px`);mark.style.setProperty('--my',`${this.y+origin.top-r.top}px`);mark.classList.add('is-active');
+   mark.style.setProperty('--mx',`${this.x+origin.left-r.left}px`);mark.style.setProperty('--my',`${this.y+origin.top-r.top}px`);mark.classList.toggle('is-active',this.x+origin.left>=r.left&&this.x+origin.left<=r.right&&this.y+origin.top>=r.top&&this.y+origin.top<=r.bottom);
   }
   let pixels;try{pixels=sample.getImageData(0,0,this.size,this.size).data;}catch{pixels=null;}
   const ctx=this.ctx;ctx.clearRect(0,0,this.size,this.size);

@@ -25,7 +25,7 @@ test('cold load and Home re-entry share one entrance; interrupted Academy exits 
  class FakePlanet{
   constructor(){planet=this;this.loaded=new Promise(resolve=>{loaded=()=>{this.ready=true;resolve();};});this.paused=false;this.reveals=0;this.departures=0;this.pointer={};}
   setState(state){this.state=state;}
-  reveal(){this.reveals++;}
+  reveal(kind){this.reveals++;this.lastReveal=kind;}
   depart(){this.departures++;}
   trackPointer(){}
   hint(){}
@@ -48,7 +48,7 @@ test('cold load and Home re-entry share one entrance; interrupted Academy exits 
  navigate('#home');advance(110);assert.equal(body.dataset.view,'home');assert.equal(planet.reveals,2);
  navigate('#academy');advance(100);navigate('#home');advance(110);advance(500);
  assert.equal(body.dataset.view,'home');assert.equal(planet.reveals,3);
- navigate('#contact');advance(110);assert.equal(body.dataset.view,'contact');assert(get('#content').innerHTML.includes('Talk to ARCWORC.'));assert(!get('#content').innerHTML.includes('Talk to<br>'));
+ navigate('#contact');advance(59);assert.equal(body.dataset.view,'home');advance(1);assert.equal(body.dataset.view,'contact');assert.equal(planet.lastReveal,'contact');assert(get('#content').innerHTML.includes('Talk to ARCWORC.'));assert(!get('#content').innerHTML.includes('Talk to<br>'));
  // Clicking the active Home link also replays the same sequence exactly once.
  navigate('#home');advance(110);const count=planet.reveals;
  links[0].events.click[0]();advance(110);assert.equal(planet.reveals,count+1);

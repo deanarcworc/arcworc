@@ -1,6 +1,6 @@
-import {Planet} from './globe.js?v=20261020-3';
-import {PointerField} from './pointer-field.js?v=20261020-3';
-import {sections,network,parseRoute,renderView,renderPins,artists} from './content.js?v=20261020-3';
+import {Planet} from './globe.js?v=20261020-4';
+import {PointerField} from './pointer-field.js?v=20261020-4';
+import {sections,network,parseRoute,renderView,renderPins,artists} from './content.js?v=20261020-4';
 const $=s=>document.querySelector(s);
 const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
 const mobilePinQuery=matchMedia('(max-width:900px)');
@@ -10,24 +10,24 @@ const pointerField=new PointerField($('#stage'),planet,motionQuery);
 $('#globe-wrap').addEventListener('animationend',e=>{if(e.animationName==='planet-reveal')e.currentTarget.classList.remove('launching','reappearing');});
 $('#stage').addEventListener('pointermove',e=>{if(e.pointerType!=='touch')planet.trackPointer(e);},{passive:true});
 $('#stage').addEventListener('pointerleave',()=>{planet.pointer.active=false;planet.dirty=true;});
-function revealPlanet(){
+function revealPlanet(kind='home'){
  const wrap=$('#globe-wrap');wrap.classList.remove('arriving','launching','reappearing');
  if(motionQuery.matches||document.body.dataset.view==='academy')return;
- planet.reveal();void wrap.offsetWidth;wrap.classList.add('launching');
+ planet.reveal(kind);void wrap.offsetWidth;wrap.classList.add('launching');
 }
 // One entrance sequence owns map, type and interface timing, including cold loads.
 let booted=false,morphFrame=0;
 let route=parseRoute(location.hash),renderToken=0,renderTimer=0;let pinNodes=[];
 const wordmarkImage=$('.wordmark-fill');
 const wordmarkReady=typeof wordmarkImage.decode==='function'?wordmarkImage.decode().catch(()=>{}):Promise.resolve();
-function stopWordmarkMorph(){cancelAnimationFrame(morphFrame);morphFrame=0;const mark=$('#interactive-wordmark');mark.style.filter='';$('#brand-displacement').setAttribute('scale','0');}
+function stopWordmarkMorph(){cancelAnimationFrame(morphFrame);morphFrame=0;navigation?.querySelectorAll('a').forEach((link,i)=>{link.querySelector('.nav-number').textContent=String(i).padStart(2,'0');});}
 function revealWordmarkEntry(token){
  if(token!==renderToken)return;
  stopWordmarkMorph();const mark=$('#interactive-wordmark');mark.classList.remove('wordmark-pending','wordmark-enter');
  if(motionQuery.matches)return;
- void mark.offsetWidth;mark.classList.add('wordmark-enter');mark.style.filter='url(#brand-morph)';
- const start=performance.now(),displacement=$('#brand-displacement');
- const frame=now=>{if(token!==renderToken){stopWordmarkMorph();return;}const t=Math.max(0,Math.min(1,(now-start-180)/1000));displacement.setAttribute('scale',String(72*(1-t)**3));if(t<1)morphFrame=requestAnimationFrame(frame);else stopWordmarkMorph();};
+ void mark.offsetWidth;mark.classList.add('wordmark-enter');
+ const start=performance.now(),numbers=Array.from(navigation.querySelectorAll('a'),link=>link.querySelector('.nav-number'));
+ const frame=now=>{if(token!==renderToken)return;const t=Math.min(1,(now-start)/650),ease=1-(1-t)**3;numbers.forEach((node,i)=>node.textContent=String(Math.round(i*ease)).padStart(2,'0'));if(t<1)morphFrame=requestAnimationFrame(frame);else morphFrame=0;};
  morphFrame=requestAnimationFrame(frame);
 }
 const warmedImages=new Map();
@@ -104,7 +104,8 @@ function navigate({initial=false}={}){
    home.hidden=true;reading.hidden=false;reading.classList.remove('entering');content.innerHTML=renderView(route);reading.scrollTop=0;mountView();
   }
   $('#stage').classList.remove('is-changing');
-  if((wasAcademy||route.view==='home')&&route.view!=='academy'&&(planet.ready||planet.failed))revealPlanet();
+  if(route.view==='contact'&&(planet.ready||planet.failed))revealPlanet('contact');
+  else if((wasAcademy||route.view==='home')&&route.view!=='academy'&&(planet.ready||planet.failed))revealPlanet();
   requestAnimationFrame(()=>{
    if(token!==renderToken)return;
    if(route.view==='home'){home.classList.add('home-enter');revealWordmarkEntry(token);}else{Array.from(content.children).forEach((node,i)=>node.style.setProperty('--item',Math.min(i,6)));reading.classList.add('entering');}
@@ -113,7 +114,7 @@ function navigate({initial=false}={}){
   });
   if(!initial)$('#route-status').textContent=`${state.title}${route.detail?' — details':''}`;
  };
- if(initial||motionQuery.matches)apply();else renderTimer=setTimeout(apply,next.view==='academy'?460:110);
+ if(initial||motionQuery.matches)apply();else renderTimer=setTimeout(apply,next.view==='academy'?460:next.view==='contact'?60:110);
 }
 planet.onProject=project=>{
  const offsets=mobilePinQuery.matches?{NGA:[-33,0],KEN:[35,2],ZWE:[21,65],ZAF:[-45,70]}:{NGA:[-35,-10],KEN:[42,5],ZWE:[12,88],ZAF:[-62,93]};
