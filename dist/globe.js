@@ -20,7 +20,7 @@ export class Planet{
   if('ResizeObserver'in window){this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(canvas);}else window.addEventListener('resize',()=>this.resize());
   this.resize();this.bind();this.load();this.frame=this.frame.bind(this);this.raf=requestAnimationFrame(this.frame);
  }
- async load(){const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);try{const response=await fetch('assets/world.json',{signal:controller.signal});if(!response.ok)throw Error('Map unavailable');const data=await response.json();this.countries=data.countries;this.emphasis=this.countries.map(c=>Number(regionSelected(c,this.region)));this.points=data.points.map(([lon,lat,country])=>({sinLon:Math.sin(lon*RAD),cosLon:Math.cos(lon*RAD),sinLat:Math.sin(lat*RAD),cosLat:Math.cos(lat*RAD),country}));this.dirty=true;this.ready=true;if(this.ctx&&this.active)this.draw();this.resolveLoaded?.();this.onReady?.();}catch{this.fallback();}finally{clearTimeout(timeout);}}
+ async load(){const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);try{const response=await fetch('assets/world-render-v1.json',{signal:controller.signal});if(!response.ok)throw Error('Map unavailable');const data=await response.json();this.countries=data.countries;this.emphasis=this.countries.map(c=>Number(regionSelected(c,this.region)));this.points=data.points.map(([lon,lat,country])=>({sinLon:Math.sin(lon*RAD),cosLon:Math.cos(lon*RAD),sinLat:Math.sin(lat*RAD),cosLat:Math.cos(lat*RAD),country}));this.dirty=true;this.ready=true;if(this.ctx&&this.active)this.draw();this.resolveLoaded?.();this.onReady?.();}catch{this.fallback();}finally{clearTimeout(timeout);}}
  fallback(){this.failed=true;this.active=false;if(this.ctx)this.ctx.clearRect(0,0,this.width*this.dpr,this.height*this.dpr);this.canvas.style.background="url('assets/globe-africa.svg') center/contain no-repeat";if(!this.ctx)this.canvas.setAttribute('aria-label','A red globe facing Africa.');this.resolveLoaded?.();this.onReady?.();}
  resize(){const rect=this.canvas.getBoundingClientRect();this.width=rect.width||600;this.height=rect.height||600;
   // CSS resizing must not repeatedly erase/reallocate the drawing buffer.
@@ -65,12 +65,12 @@ export class Planet{
   for(let lo=-180;lo<180;lo+=30){const coords=[];for(let la=-88;la<=88;la+=3)coords.push([lo,la]);line(coords);}
   const centerLon=lon*RAD,centerLat=lat*RAD,sl=Math.sin(centerLon),cl=Math.cos(centerLon),sa=Math.sin(centerLat),ca=Math.cos(centerLat);
   ctx.restore();ctx.globalAlpha=(.25+.75*formed)*(this.departing?formed:1);
-  const dots=Array.from({length:17},()=>[]);
-  for(const [index,p] of this.points.entries()){const deltaCos=p.cosLon*cl+p.sinLon*sl;const z=sa*p.sinLat+ca*p.cosLat*deltaCos;if(z<=.015)continue;let x=cx+p.cosLat*(p.sinLon*cl-p.cosLon*sl)*r;let y=cy-(ca*p.sinLat-sa*p.cosLat*deltaCos)*r;
+  const dots=this.dotBuckets||(this.dotBuckets=Array.from({length:17},()=>[]));for(const bucket of dots)bucket.length=0;
+  for(let index=0;index<this.points.length;index++){const p=this.points[index];const deltaCos=p.cosLon*cl+p.sinLon*sl;const z=sa*p.sinLat+ca*p.cosLat*deltaCos;if(z<=.015)continue;let x=cx+p.cosLat*(p.sinLon*cl-p.cosLon*sl)*r;let y=cy-(ca*p.sinLat-sa*p.cosLat*deltaCos)*r;
    const bucket=Math.round((this.emphasis[p.country]??0)*16);
    const morph=this.transitionKind==='contact'?contactPoint(x,y,index,formed,cx,cy,r):morphPoint(x,y,index,formed,cx,cy,r);x=morph.x;y=morph.y;
-   dots[bucket].push([x,y,Math.max(.45,Math.min(w,h)*.0024*(.5+.5*z))]);}
-  dots.forEach((points,i)=>{const t=i/16;ctx.beginPath();for(const [x,y,size]of points){ctx.moveTo(x+size,y);ctx.arc(x,y,size,0,Math.PI*2);}ctx.fillStyle=`rgba(${Math.round(38+207*t)},${Math.round(38+205*t)},${Math.round(38+201*t)},${.88-.11*t})`;ctx.fill();});
+   dots[bucket].push(x,y,Math.max(.45,Math.min(w,h)*.0024*(.5+.5*z)));}
+  dots.forEach((points,i)=>{const t=i/16;ctx.beginPath();for(let j=0;j<points.length;j+=3){const x=points[j],y=points[j+1],size=points[j+2];ctx.moveTo(x+size,y);ctx.arc(x,y,size,0,Math.PI*2);}ctx.fillStyle=`rgba(${Math.round(38+207*t)},${Math.round(38+205*t)},${Math.round(38+201*t)},${.88-.11*t})`;ctx.fill();});
   ctx.save();ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.clip();ctx.globalAlpha=material;
   // Country outlines make small selected countries such as Zimbabwe legible.
   if(['ZWE','ZAF','NGA','KEN','network'].includes(this.region)){ctx.strokeStyle='rgba(245,243,239,.8)';ctx.lineWidth=.75;for(const country of this.countries){if(regionSelected(country,this.region))country.rings.forEach(line);}}

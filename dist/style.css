@@ -10,8 +10,8 @@ body:not([data-view=home]) .globe-wrap{width:min(36vw,500px);height:min(36vw,500
 .roster-photo{width:100%;height:auto;aspect-ratio:1.85;object-fit:cover;margin-bottom:20px}.artist-photo{margin:0 0 25px}.artist-photo img{width:100%;height:auto}.artist-photo figcaption{font-size:8px;letter-spacing:.8px;color:var(--muted);margin-top:9px}
 
 /* Refinement: identity, reading rhythm and a floating globe. */
-@font-face{font-family:Sora;src:url('assets/sora-variable.woff') format('woff');font-style:normal;font-weight:400 700;font-display:swap}
-@font-face{font-family:Manrope;src:url('assets/manrope-variable.woff') format('woff');font-style:normal;font-weight:400 700;font-display:swap}
+@font-face{font-family:Sora;src:url('assets/sora-latin-v1.woff') format('woff');font-style:normal;font-weight:400 700;font-display:swap}
+@font-face{font-family:Manrope;src:url('assets/manrope-latin-v1.woff') format('woff');font-style:normal;font-weight:400 700;font-display:swap}
 body{font-family:Manrope,Arial,sans-serif}.page-title,.hero-copy h1,.artist-name,.row-link h3,.content-heading,.course-link h3{font-family:Sora,Arial,sans-serif}.page-title{font-weight:500;letter-spacing:-.065em;font-size:clamp(34px,3.5vw,56px);line-height:1.09}.hero-copy h1{font-weight:500;letter-spacing:-.055em}.masthead-descriptor{color:var(--red);font-weight:600}.masthead-line{background:#fa38275c}.masthead{gap:25px}.stage{overflow:visible}.reading{font-size:13px;transition:opacity .18s ease,transform .25s ease}.reading p{font-size:13px;line-height:1.85}.reading .lead{font-size:clamp(17px,1.4vw,21px);line-height:1.55}.reading .small-note{font-size:10px}.reading .service-detail p{font-size:12px}.stage.is-changing .reading,.stage.is-changing .home-scene{opacity:0;transform:translateY(-8px)}.home-scene{transition:opacity .24s,transform .4s var(--ease)}.home-scene.home-enter{animation:home-arrive .8s var(--ease) both}.home-enter .hero-wordmark{animation:wordmark-arrive .9s var(--ease) both}.home-enter .hero-copy{animation:copy-arrive .8s .16s var(--ease) both}.home-enter .home-discover{animation:copy-arrive .8s .25s var(--ease) both}@keyframes home-arrive{from{opacity:0}to{opacity:1}}@keyframes wordmark-arrive{from{opacity:0;clip-path:inset(0 100% 0 0);transform:translateY(calc(-50% + 12px))}to{opacity:1;clip-path:inset(0);transform:translateY(-50%)}}@keyframes copy-arrive{from{opacity:0;translate:0 12px}to{opacity:1;translate:0 0}}
 .globe-wrap{--arrival:1;width:min(54vw,calc((100svh - 145px)*1.22),680px);height:auto;aspect-ratio:1;transform:translateY(-50%) scale(var(--arrival));transform-origin:center;transition:width .8s var(--ease),right .8s var(--ease),top .8s var(--ease),opacity .55s,transform .8s var(--ease)}.globe-wrap.arriving{--arrival:.87;opacity:0}#globe{height:100%;aspect-ratio:1}.globe-wrap.reappearing{animation:planet-arrive .75s var(--ease) both}@keyframes planet-arrive{from{opacity:0;scale:.9}to{opacity:1;scale:1}}body:not([data-view=home]) .globe-wrap{width:min(36vw,calc((100svh - 145px)*1.1),500px);height:auto;right:0}body[data-view=contact] .globe-wrap{width:min(31vw,calc((100svh - 145px)*.9),430px);height:auto;right:0}.globe-caption{gap:9px;font-size:7px}.globe-caption button{font-size:7px}
 .hero-wordmark{pointer-events:auto}.hero-wordmark img{height:auto}.wordmark-outline,.hero-wordmark:after{display:none}
@@ -107,3 +107,15 @@ body[data-view=home] .hero-wordmark.is-active .wordmark-outline{opacity:.9;mask-
 body[data-view=home] .hero-wordmark.is-decoding .wordmark-fill{opacity:1;mask-image:linear-gradient(to right,#000 0,#000 var(--decoded-edge),transparent var(--decoded-edge),transparent 100%)!important}
 body[data-view=home] .hero-wordmark.is-decoding .wordmark-outline{opacity:0}
 @media(prefers-reduced-motion:reduce){body[data-view=home] .hero-wordmark.is-active .wordmark-fill{mask-image:none!important}.wordmark-decode{display:none!important}}
+
+/* Globe first, then individual cards: South Africa, Zimbabwe, Kenya, Nigeria. */
+.globe-pins.pin-enter{animation:none}
+.pin-enter .globe-pin{animation:pin-rise .38s calc(var(--pin-base,.32s) + var(--pin-order,0)*.1s) var(--ease) both}
+@keyframes pin-rise{from{opacity:0;scale:.58;translate:0 16px;pointer-events:none}to{opacity:1;scale:1;translate:0 0;pointer-events:auto}}
+.pins-exit .globe-pin{animation:pin-fall .13s calc(var(--pin-order,0)*.035s) ease-in both;pointer-events:none!important}
+@keyframes pin-fall{from{opacity:1;scale:1;translate:0 0}to{opacity:0;scale:.72;translate:0 9px}}
+.pin-enter .pin-wires g{animation:wire-appear .2s calc(var(--pin-base,.32s) + var(--pin-order,0)*.1s) both}
+.pins-exit .pin-wires g{animation:wire-disappear .1s calc(var(--pin-order,0)*.035s) both}
+@keyframes wire-appear{from{opacity:0}to{opacity:1}}@keyframes wire-disappear{to{opacity:0}}
+.globe-pin[data-visible=false]{visibility:hidden!important;pointer-events:none!important}
+@media(prefers-reduced-motion:reduce){.pin-enter .globe-pin,.pins-exit .globe-pin,.pin-enter .pin-wires g,.pins-exit .pin-wires g{animation:none;scale:1;translate:0 0}}
