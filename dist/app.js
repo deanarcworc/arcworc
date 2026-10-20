@@ -1,10 +1,12 @@
 import {Planet} from './globe.js';
+import {PointerField} from './pointer-field.js';
 import {sections,network,parseRoute,renderView,renderPins,artists} from './content.js';
 const $=s=>document.querySelector(s);
 const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
 const mobilePinQuery=matchMedia('(max-width:900px)');
 $('#globe-wrap').classList.add('arriving');
 const planet=new Planet($('#globe'),{reduced:motionQuery.matches});
+new PointerField($('#stage'),planet,motionQuery);
 $('#globe-wrap').addEventListener('animationend',e=>{if(e.animationName==='planet-reveal')e.currentTarget.classList.remove('launching','reappearing');});
 $('#stage').addEventListener('pointermove',e=>{if(e.pointerType!=='touch')planet.trackPointer(e);},{passive:true});
 $('#stage').addEventListener('pointerleave',()=>{planet.pointer.active=false;planet.dirty=true;});
@@ -46,6 +48,7 @@ function setGlobe(state){planet.setState(state);$('#globe-place').textContent=st
 function mountContact(){const form=$('#contact-form');if(!form)return;const select=$('#topic'),message=$('#message');const p=route.params;
  const requested=p.get('topic');if(requested&&Array.from(select.options).some(o=>o.value===requested))select.value=requested;
  if(p.get('artist'))message.value=`I would like to enquire about booking ${p.get('artist')}.\n\nEvent details:\n`;
+ if(p.get('brand'))message.value=`I would like to find out more about ${p.get('brand')}.\n\n`;
  if(p.get('course'))message.value=`I’m interested in ${p.get('course')}. Please keep me informed as the Academy programmes develop.\n\n`;
  if(p.get('experience'))message.value=`I would like to discuss ${p.get('experience')}.\n\n`;
  const bookingFields=()=>{$('#booking-fields').hidden=!['Artist booking & management','Events & live experiences'].includes(select.value);};select.addEventListener('change',bookingFields);bookingFields();
@@ -77,6 +80,7 @@ function navigate({initial=false}={}){
  const token=++renderToken;clearTimeout(renderTimer);closeMenu();
  navigation.querySelectorAll('[data-nav]').forEach(link=>{if(link.dataset.nav===route.view)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
  document.title=`${state.title==='Home'?'A connected world':state.title} — ARCWORC`;
+ $('#globe-wrap').classList.remove('departing');
  if(!initial)$('#stage').classList.add('is-changing');
  if(!initial&&next.view==='academy'&&document.body.dataset.view!=='academy')$('#globe-wrap').classList.add('departing');
  const apply=()=>{
@@ -105,7 +109,7 @@ function navigate({initial=false}={}){
   });
   if(!initial)$('#route-status').textContent=`${state.title}${route.detail?' — details':''}`;
  };
- if(initial||motionQuery.matches)apply();else renderTimer=setTimeout(apply,next.view==='academy'?320:80);
+ if(initial||motionQuery.matches)apply();else renderTimer=setTimeout(apply,next.view==='academy'?460:110);
 }
 planet.onProject=project=>{
  const offsets=mobilePinQuery.matches?{NGA:[-33,0],KEN:[35,2],ZWE:[21,65],ZAF:[-45,70]}:{NGA:[-35,-10],KEN:[42,5],ZWE:[12,88],ZAF:[-62,93]};
@@ -116,13 +120,9 @@ planet.onProject=project=>{
   if(pin.wire){pin.wire.style.opacity=visible?'1':'0';if(visible){const [dx,dy]=offsets[pin.dataset.country];const line=pin.wire.querySelector('line'),dot=pin.wire.querySelector('circle');for(const [a,v]of Object.entries({x1:p.x,y1:p.y,x2:p.x+dx,y2:p.y+dy-16}))line.setAttribute(a,v.toFixed(1));dot.setAttribute('cx',p.x.toFixed(1));dot.setAttribute('cy',p.y.toFixed(1));}}
  }
 };
-const wordmark=$('#interactive-wordmark');let lensTimeout;
-const dust=document.createElement('span');dust.className='wordmark-dust';dust.setAttribute('aria-hidden','true');dust.innerHTML=Array.from({length:8},(_,i)=>`<i style="--i:${i}"></i>`).join('');wordmark.append(dust);
-function revealWordmark(e){if(motionQuery.matches)return;const r=wordmark.getBoundingClientRect();wordmark.style.setProperty('--mx',`${e.clientX-r.left}px`);wordmark.style.setProperty('--my',`${e.clientY-r.top}px`);wordmark.classList.add('is-active');}
-wordmark.addEventListener('pointermove',revealWordmark);wordmark.addEventListener('pointerleave',()=>wordmark.classList.remove('is-active'));wordmark.addEventListener('pointerdown',e=>{revealWordmark(e);if(e.pointerType==='touch'){clearTimeout(lensTimeout);lensTimeout=setTimeout(()=>wordmark.classList.remove('is-active'),700);}});
 window.addEventListener('hashchange',()=>navigate());
 // Selecting the already active Home link still recenters the planet on Africa.
-navigation.querySelectorAll('a').forEach(link=>{link.addEventListener('click',()=>{if(link.getAttribute('href')===location.hash){setGlobe(sections[route.view]);closeMenu();if(route.view==='home')window.scrollTo({top:0,behavior:'instant'});}});link.addEventListener('pointerenter',()=>{planet.hint(true);warmImages(link.dataset.nav);});link.addEventListener('pointerleave',()=>planet.hint(false));link.addEventListener('focus',()=>{planet.hint(true);warmImages(link.dataset.nav);});link.addEventListener('pointerdown',()=>warmImages(link.dataset.nav),{passive:true});link.addEventListener('blur',()=>planet.hint(false));});
+navigation.querySelectorAll('a').forEach(link=>{link.addEventListener('click',()=>{if(link.getAttribute('href')===location.hash){setGlobe(sections[route.view]);closeMenu();if(route.view==='home'){window.scrollTo({top:0,behavior:'instant'});revealPlanet();}}});link.addEventListener('pointerenter',()=>{planet.hint(true);warmImages(link.dataset.nav);});link.addEventListener('pointerleave',()=>planet.hint(false));link.addEventListener('focus',()=>{planet.hint(true);warmImages(link.dataset.nav);});link.addEventListener('pointerdown',()=>warmImages(link.dataset.nav),{passive:true});link.addEventListener('blur',()=>planet.hint(false));});
 $('.brandmark').addEventListener('click',()=>{if(route.view==='home')setGlobe(sections.home);});
 $('#globe-reset').addEventListener('click',()=>{setGlobe(sections[route.view]);content.querySelectorAll('[data-country]').forEach(b=>b.setAttribute('aria-pressed','false'));});
 const motionButton=$('#motion-toggle');function updateMotionButton(){motionButton.setAttribute('aria-pressed',String(planet.paused));motionButton.querySelector('.motion-icon').textContent=planet.paused?'▷':'Ⅱ';motionButton.querySelector('.motion-label').textContent=planet.paused?'Resume motion':'Pause motion';motionButton.setAttribute('aria-label',planet.paused?'Resume globe motion':'Pause globe motion');}
