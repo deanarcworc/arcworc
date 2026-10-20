@@ -1,6 +1,6 @@
-import {Planet} from './globe.js';
-import {PointerField} from './pointer-field.js';
-import {sections,network,parseRoute,renderView,renderPins,artists} from './content.js';
+import {Planet} from './globe.js?v=20261020-2';
+import {PointerField} from './pointer-field.js?v=20261020-2';
+import {sections,network,parseRoute,renderView,renderPins,artists} from './content.js?v=20261020-2';
 const $=s=>document.querySelector(s);
 const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
 const mobilePinQuery=matchMedia('(max-width:900px)');
