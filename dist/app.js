@@ -1,12 +1,12 @@
-import {Planet} from './globe.js?v=20261020-2';
-import {PointerField} from './pointer-field.js?v=20261020-2';
-import {sections,network,parseRoute,renderView,renderPins,artists} from './content.js?v=20261020-2';
+import {Planet} from './globe.js?v=20261020-3';
+import {PointerField} from './pointer-field.js?v=20261020-3';
+import {sections,network,parseRoute,renderView,renderPins,artists} from './content.js?v=20261020-3';
 const $=s=>document.querySelector(s);
 const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
 const mobilePinQuery=matchMedia('(max-width:900px)');
 $('#globe-wrap').classList.add('arriving');
 const planet=new Planet($('#globe'),{reduced:motionQuery.matches});
-new PointerField($('#stage'),planet,motionQuery);
+const pointerField=new PointerField($('#stage'),planet,motionQuery);
 $('#globe-wrap').addEventListener('animationend',e=>{if(e.animationName==='planet-reveal')e.currentTarget.classList.remove('launching','reappearing');});
 $('#stage').addEventListener('pointermove',e=>{if(e.pointerType!=='touch')planet.trackPointer(e);},{passive:true});
 $('#stage').addEventListener('pointerleave',()=>{planet.pointer.active=false;planet.dirty=true;});
@@ -15,17 +15,21 @@ function revealPlanet(){
  if(motionQuery.matches||document.body.dataset.view==='academy')return;
  planet.reveal();void wrap.offsetWidth;wrap.classList.add('launching');
 }
-// Wait for a painted map, then animate it instead of revealing an empty canvas.
-planet.onReady=()=>requestAnimationFrame(()=>requestAnimationFrame(revealPlanet));
-if(planet.failed||planet.ready)planet.onReady();
+// One entrance sequence owns map, type and interface timing, including cold loads.
+let booted=false,morphFrame=0;
 let route=parseRoute(location.hash),renderToken=0,renderTimer=0;let pinNodes=[];
 const wordmarkImage=$('.wordmark-fill');
 const wordmarkReady=typeof wordmarkImage.decode==='function'?wordmarkImage.decode().catch(()=>{}):Promise.resolve();
-function revealWordmarkEntry(token){wordmarkReady.then(()=>{
+function stopWordmarkMorph(){cancelAnimationFrame(morphFrame);morphFrame=0;const mark=$('#interactive-wordmark');mark.style.filter='';$('#brand-displacement').setAttribute('scale','0');}
+function revealWordmarkEntry(token){
  if(token!==renderToken)return;
- const mark=$('#interactive-wordmark');mark.classList.remove('wordmark-pending','wordmark-enter');
- if(!motionQuery.matches){void mark.offsetWidth;mark.classList.add('wordmark-enter');}
-});}
+ stopWordmarkMorph();const mark=$('#interactive-wordmark');mark.classList.remove('wordmark-pending','wordmark-enter');
+ if(motionQuery.matches)return;
+ void mark.offsetWidth;mark.classList.add('wordmark-enter');mark.style.filter='url(#brand-morph)';
+ const start=performance.now(),displacement=$('#brand-displacement');
+ const frame=now=>{if(token!==renderToken){stopWordmarkMorph();return;}const t=Math.max(0,Math.min(1,(now-start-180)/1000));displacement.setAttribute('scale',String(72*(1-t)**3));if(t<1)morphFrame=requestAnimationFrame(frame);else stopWordmarkMorph();};
+ morphFrame=requestAnimationFrame(frame);
+}
 const warmedImages=new Map();
 const viewImages={roster:[artists['pa-ngu'].pin,artists['pa-ngu'].portrait],presents:['assets/event-crowd-pin.webp','assets/event-room-pin.webp']};
 function warmImages(view,detail=''){
@@ -77,12 +81,12 @@ function navigate({initial=false}={}){
  const next=parseRoute(location.hash);route=next;warmImages(route.view,route.detail);
  const base=sections[route.view],region=route.view==='presents'?network[route.params.get('region')]:null;
  const state=region?{...base,region:route.params.get('region'),place:region.name,lon:region.lon,lat:region.lat}:base;
- const token=++renderToken;clearTimeout(renderTimer);closeMenu();
+ const token=++renderToken;pointerField.hide();stopWordmarkMorph();clearTimeout(renderTimer);closeMenu();
  navigation.querySelectorAll('[data-nav]').forEach(link=>{if(link.dataset.nav===route.view)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
  document.title=`${state.title==='Home'?'A connected world':state.title} — ARCWORC`;
  $('#globe-wrap').classList.remove('departing');
  if(!initial)$('#stage').classList.add('is-changing');
- if(!initial&&next.view==='academy'&&document.body.dataset.view!=='academy')$('#globe-wrap').classList.add('departing');
+ if(!initial&&next.view==='academy'&&document.body.dataset.view!=='academy'){planet.depart();$('#globe-wrap').classList.add('departing');}
  const apply=()=>{
   if(token!==renderToken)return;
   const wasAcademy=document.body.dataset.view==='academy';
@@ -100,10 +104,10 @@ function navigate({initial=false}={}){
    home.hidden=true;reading.hidden=false;reading.classList.remove('entering');content.innerHTML=renderView(route);reading.scrollTop=0;mountView();
   }
   $('#stage').classList.remove('is-changing');
-  if((wasAcademy||(!initial&&route.view==='home'))&&route.view!=='academy'&&(planet.ready||planet.failed))revealPlanet();
+  if((wasAcademy||route.view==='home')&&route.view!=='academy'&&(planet.ready||planet.failed))revealPlanet();
   requestAnimationFrame(()=>{
    if(token!==renderToken)return;
-   if(route.view==='home'){home.classList.add('home-enter');revealWordmarkEntry(token);}else reading.classList.add('entering');
+   if(route.view==='home'){home.classList.add('home-enter');revealWordmarkEntry(token);}else{Array.from(content.children).forEach((node,i)=>node.style.setProperty('--item',Math.min(i,6)));reading.classList.add('entering');}
    $('#globe-pins').classList.add('pin-enter');
    if(!initial&&route.view!=='home'){content.querySelector('h1')?.focus({preventScroll:true});if(matchMedia('(max-width:900px)').matches)window.scrollTo({top:0,behavior:'instant'});}
   });
@@ -120,11 +124,15 @@ planet.onProject=project=>{
   if(pin.wire){pin.wire.style.opacity=visible?'1':'0';if(visible){const [dx,dy]=offsets[pin.dataset.country];const line=pin.wire.querySelector('line'),dot=pin.wire.querySelector('circle');for(const [a,v]of Object.entries({x1:p.x,y1:p.y,x2:p.x+dx,y2:p.y+dy-16}))line.setAttribute(a,v.toFixed(1));dot.setAttribute('cx',p.x.toFixed(1));dot.setAttribute('cy',p.y.toFixed(1));}}
  }
 };
-window.addEventListener('hashchange',()=>navigate());
+window.addEventListener('hashchange',()=>{if(booted)navigate();});
 // Selecting the already active Home link still recenters the planet on Africa.
-navigation.querySelectorAll('a').forEach(link=>{link.addEventListener('click',()=>{if(link.getAttribute('href')===location.hash){setGlobe(sections[route.view]);closeMenu();if(route.view==='home'){window.scrollTo({top:0,behavior:'instant'});revealPlanet();}}});link.addEventListener('pointerenter',()=>{planet.hint(true);warmImages(link.dataset.nav);});link.addEventListener('pointerleave',()=>planet.hint(false));link.addEventListener('focus',()=>{planet.hint(true);warmImages(link.dataset.nav);});link.addEventListener('pointerdown',()=>warmImages(link.dataset.nav),{passive:true});link.addEventListener('blur',()=>planet.hint(false));});
-$('.brandmark').addEventListener('click',()=>{if(route.view==='home')setGlobe(sections.home);});
+navigation.querySelectorAll('a').forEach(link=>{link.addEventListener('click',()=>{if(link.getAttribute('href')===location.hash){if(booted)navigate();}});link.addEventListener('pointerenter',()=>{planet.hint(true);warmImages(link.dataset.nav);});link.addEventListener('pointerleave',()=>planet.hint(false));link.addEventListener('focus',()=>{planet.hint(true);warmImages(link.dataset.nav);});link.addEventListener('pointerdown',()=>warmImages(link.dataset.nav),{passive:true});link.addEventListener('blur',()=>planet.hint(false));});
+$('.brandmark').addEventListener('click',()=>{if(booted&&route.view==='home')navigate();});
 $('#globe-reset').addEventListener('click',()=>{setGlobe(sections[route.view]);content.querySelectorAll('[data-country]').forEach(b=>b.setAttribute('aria-pressed','false'));});
 const motionButton=$('#motion-toggle');function updateMotionButton(){motionButton.setAttribute('aria-pressed',String(planet.paused));motionButton.querySelector('.motion-icon').textContent=planet.paused?'▷':'Ⅱ';motionButton.querySelector('.motion-label').textContent=planet.paused?'Resume motion':'Pause motion';motionButton.setAttribute('aria-label',planet.paused?'Resume globe motion':'Pause globe motion');}
 motionButton.addEventListener('click',()=>{if(planet.reduced&&planet.paused)planet.reduced=false;planet.setPaused(!planet.paused);updateMotionButton();});motionQuery.addEventListener('change',e=>{planet.setReduced(e.matches);updateMotionButton();});
-$('#year').textContent=new Date().getFullYear();updateMotionButton();navigate({initial:true});
+$('#year').textContent=new Date().getFullYear();updateMotionButton();
+navigation.querySelectorAll('a').forEach((link,i)=>link.style.setProperty('--order',i));
+Promise.all([planet.loaded,wordmarkReady,document.fonts?.ready||Promise.resolve()]).then(()=>{
+ booted=true;document.documentElement.classList.remove('is-booting');$('.site-frame').classList.add('site-intro');navigate({initial:true});
+});

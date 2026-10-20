@@ -55,3 +55,35 @@ body{--view-image:url('assets/event-room.webp')}body[data-view=roster]{--view-im
 .row-link h3{font-size:clamp(17px,1.5vw,22px);line-height:1.25}.brand-list .row-link{padding:21px 0;align-items:flex-start}.brand-list .row-link p{max-width:440px;font-size:12px;line-height:1.7;color:#f5f3efad}.brand-list .brand-type{display:block;font-size:8px;letter-spacing:.9px;text-transform:uppercase;color:var(--red);margin:0 0 8px}.brand-read-more{display:block;font-size:9px;color:var(--paper);margin-top:12px}.content-heading{font-size:clamp(17px,1.6vw,22px);line-height:1.4}.reading.entering #content{animation-duration:.42s}
 @media(max-width:900px){.page-title,body[data-view=academy] .page-title,body[data-view=contact] .page-title{font-size:30px}.brand-list .row-link p{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.pointer-field{display:none}.globe-wrap.arriving{opacity:1}.globe-wrap.launching,.globe-wrap.reappearing,.globe-wrap.departing{animation:none}.globe-wrap{transition:none!important}.reading.entering #content,.home-scene.home-enter,.hero-wordmark.wordmark-enter{animation:none}}
+
+/* Final motion system: one resource-ready entrance, with geometry before copy. */
+.motion-defs{position:absolute;pointer-events:none;overflow:hidden}
+html.is-booting .site-frame{visibility:hidden}
+.globe-wrap.launching,.globe-wrap.reappearing{animation:none;opacity:1;scale:1;rotate:0deg;translate:0 0;filter:none}
+.globe-wrap.departing{animation:none;pointer-events:none}
+.home-scene.home-enter{animation:none;opacity:1}
+.hero-wordmark.wordmark-enter{animation:brand-settle 1.05s .18s cubic-bezier(.16,1,.3,1) both}
+@keyframes brand-settle{0%{opacity:0;clip-path:inset(38% 0);scale:.94 .3;translate:0 14px}25%{opacity:1;clip-path:inset(12% 0);scale:1.025 .82}65%{clip-path:inset(0);scale:1 1.015}100%{opacity:1;clip-path:inset(0);scale:1;translate:0 0}}
+.home-enter .hero-copy{animation:line-settle .65s .55s var(--ease) both}
+.home-enter .home-discover{animation:line-settle .55s .75s var(--ease) both}
+.home-enter .home-coordinate{animation:line-settle .55s .88s var(--ease) both}
+@keyframes line-settle{from{opacity:0;clip-path:inset(0 0 100%);translate:0 14px}to{opacity:1;clip-path:inset(0);translate:0 0}}
+.site-intro .masthead{animation:line-settle .55s .05s var(--ease) both}
+.site-intro .navigation>a{animation:line-settle .5s calc(.16s + var(--order)*.045s) var(--ease) both}
+.site-intro .nav-overline{animation:line-settle .5s .12s var(--ease) both}
+.site-intro .nav-bottom,.site-intro .footer{animation:line-settle .55s .65s var(--ease) both}
+.reading.entering #content{animation:none}
+.reading.entering #content>*{animation:section-settle .5s calc(var(--item,0)*.045s) var(--ease) both}
+@keyframes section-settle{from{opacity:0;translate:0 15px;clip-path:inset(0 0 18%)}to{opacity:1;translate:0 0;clip-path:inset(0)}}
+/* The hover lens changes only the letters and the globe, only on Home. */
+body[data-view=home] .hero-wordmark.is-active .wordmark-fill{mask-image:radial-gradient(circle 98px at var(--mx) var(--my),transparent 0,transparent 70px,#000 98px)}
+body:not([data-view=home]) .pointer-field{display:none!important}
+.pointer-field{z-index:5}
+.page-title,body[data-view=academy] .page-title{font-size:clamp(26px,2.6vw,36px);line-height:1.16;letter-spacing:-.04em;margin-bottom:18px}
+body[data-view=contact] .page-title{font-size:26px;line-height:1.25;letter-spacing:-.025em;margin:0 0 14px}
+body[data-view=contact] .lead{font-size:16px;line-height:1.65;max-width:420px;margin-bottom:20px}
+body[data-view=contact] .eyebrow{margin-bottom:18px}
+@media(max-width:900px){.page-title,body[data-view=academy] .page-title{font-size:28px}body[data-view=contact] .page-title{font-size:24px}}
+@media(prefers-reduced-motion:reduce){.site-intro .masthead,.site-intro .navigation>a,.site-intro .nav-overline,.site-intro .nav-bottom,.site-intro .footer,.hero-wordmark.wordmark-enter,.home-enter .hero-copy,.home-enter .home-discover,.home-enter .home-coordinate,.reading.entering #content>*{animation:none;opacity:1;clip-path:none;scale:1;translate:0 0}body[data-view=home] .hero-wordmark.is-active .wordmark-fill{mask-image:none}}
+
+.globe-wrap.departing .globe-pins,.globe-wrap.departing .globe-caption{opacity:0;transition:opacity .16s}
