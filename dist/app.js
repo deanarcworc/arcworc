@@ -1,6 +1,7 @@
-import {Planet} from './globe.js?v=20261020-4';
-import {PointerField} from './pointer-field.js?v=20261020-4';
-import {sections,network,parseRoute,renderView,renderPins,artists} from './content.js?v=20261020-4';
+import {decodeWordmark,decodedEdge} from './wordmark-decode.js?v=20261020-5';
+import {Planet} from './globe.js?v=20261020-5';
+import {PointerField} from './pointer-field.js?v=20261020-5';
+import {sections,network,parseRoute,renderView,renderPins,artists} from './content.js?v=20261020-5';
 const $=s=>document.querySelector(s);
 const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
 const mobilePinQuery=matchMedia('(max-width:900px)');
@@ -20,14 +21,22 @@ let booted=false,morphFrame=0;
 let route=parseRoute(location.hash),renderToken=0,renderTimer=0;let pinNodes=[];
 const wordmarkImage=$('.wordmark-fill');
 const wordmarkReady=typeof wordmarkImage.decode==='function'?wordmarkImage.decode().catch(()=>{}):Promise.resolve();
-function stopWordmarkMorph(){cancelAnimationFrame(morphFrame);morphFrame=0;navigation?.querySelectorAll('a').forEach((link,i)=>{link.querySelector('.nav-number').textContent=String(i).padStart(2,'0');});}
+function stopWordmarkMorph(){cancelAnimationFrame(morphFrame);morphFrame=0;$('#interactive-wordmark').classList.remove('is-decoding','wordmark-enter');navigation?.querySelectorAll('a').forEach((link,i)=>{link.querySelector('.nav-number').textContent=String(i).padStart(2,'0');});}
 function revealWordmarkEntry(token){
  if(token!==renderToken)return;
  stopWordmarkMorph();const mark=$('#interactive-wordmark');mark.classList.remove('wordmark-pending','wordmark-enter');
  if(motionQuery.matches)return;
  void mark.offsetWidth;mark.classList.add('wordmark-enter');
- const start=performance.now(),numbers=Array.from(navigation.querySelectorAll('a'),link=>link.querySelector('.nav-number'));
- const frame=now=>{if(token!==renderToken)return;const t=Math.min(1,(now-start)/650),ease=1-(1-t)**3;numbers.forEach((node,i)=>node.textContent=String(Math.round(i*ease)).padStart(2,'0'));if(t<1)morphFrame=requestAnimationFrame(frame);else morphFrame=0;};
+ mark.classList.add('is-decoding');mark.style.setProperty('--decoded-edge','0%');
+ const start=performance.now(),numbers=Array.from(navigation.querySelectorAll('a'),link=>link.querySelector('.nav-number')),glyphs=mark.querySelectorAll('[data-decode-letter]');
+ const frame=now=>{
+  if(token!==renderToken)return;
+  const elapsed=now-start,states=decodeWordmark(elapsed),t=Math.min(1,elapsed/650),ease=1-(1-t)**3;
+  numbers.forEach((node,i)=>node.textContent=String(Math.round(i*ease)).padStart(2,'0'));
+  glyphs.forEach((node,i)=>{node.textContent=states[i].settled?'':states[i].letter;});
+  mark.style.setProperty('--decoded-edge',decodedEdge(states)+'%');
+  if(states.every(s=>s.settled)){mark.classList.remove('is-decoding','wordmark-enter');morphFrame=0;}else morphFrame=requestAnimationFrame(frame);
+ };
  morphFrame=requestAnimationFrame(frame);
 }
 const warmedImages=new Map();

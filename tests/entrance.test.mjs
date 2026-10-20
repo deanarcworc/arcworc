@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import * as content from '../dist/content.js';
+import * as decode from '../dist/wordmark-decode.js';
 
 test('cold load and Home re-entry share one entrance; interrupted Academy exits cannot win later',async()=>{
  const nodes=new Map(),timers=new Map(),frames=new Map();let now=0,id=0,loaded,planet;
@@ -34,7 +35,7 @@ test('cold load and Home re-entry share one entrance; interrupted Academy exits 
  class FakePointer{hide(){}}
  const location={hash:'#home'},windowEvents={};
  const window={addEventListener:(name,fn)=>{windowEvents[name]=fn;},scrollTo(){}};
- const context={...content,Planet:FakePlanet,PointerField:FakePointer,document,window,location,matchMedia:()=>({matches:false,addEventListener(){}}),performance:{now:()=>now},Date,URLSearchParams,requestAnimationFrame:fn=>{frames.set(++id,fn);return id;},cancelAnimationFrame:key=>frames.delete(key),setTimeout:(fn,delay)=>{timers.set(++id,{at:now+delay,fn});return id;},clearTimeout:key=>timers.delete(key)};
+ const context={...content,...decode,Planet:FakePlanet,PointerField:FakePointer,document,window,location,matchMedia:()=>({matches:false,addEventListener(){}}),performance:{now:()=>now},Date,URLSearchParams,requestAnimationFrame:fn=>{frames.set(++id,fn);return id;},cancelAnimationFrame:key=>frames.delete(key),setTimeout:(fn,delay)=>{timers.set(++id,{at:now+delay,fn});return id;},clearTimeout:key=>timers.delete(key)};
  const source=fs.readFileSync(new URL('../dist/app.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'');
  vm.runInNewContext(source,context);
  const frame=()=>{const queue=[...frames.values()];frames.clear();queue.forEach(fn=>fn(now));};
@@ -42,7 +43,7 @@ test('cold load and Home re-entry share one entrance; interrupted Academy exits 
  const navigate=hash=>{location.hash=hash;windowEvents.hashchange();};
  assert(html.classes.has('is-booting'));assert.equal(planet.reveals,0);
  loaded();await new Promise(resolve=>setImmediate(resolve));frame();
- assert(!html.classes.has('is-booting'));assert.equal(planet.reveals,1);assert(get('#home-scene').classes.has('home-enter'));
+ assert(!html.classes.has('is-booting'));assert.equal(planet.reveals,1);assert(get('#home-scene').classes.has('home-enter'));advance(800);assert(!get('#interactive-wordmark').classes.has('is-decoding'));assert(!get('#interactive-wordmark').classes.has('wordmark-enter'));
  navigate('#academy');assert.equal(planet.departures,1);assert.equal(body.dataset.view,'home');
  advance(459);assert.equal(body.dataset.view,'home');advance(1);assert.equal(body.dataset.view,'academy');assert.equal(get('#globe-wrap').attrs['aria-hidden'],'true');
  navigate('#home');advance(110);assert.equal(body.dataset.view,'home');assert.equal(planet.reveals,2);
