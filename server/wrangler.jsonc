@@ -1,0 +1,16 @@
+{
+  "name": "arcworc-enquiries",
+  "main": "enquiry.js",
+  "account_id": "ffda9e885dbffa45e033a95b1bcb2aa0",
+  "compatibility_date": "2026-10-20",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {"DELIVERY_ENABLED": "true"},
+  "send_email": [{"name": "EMAIL", "allowed_destination_addresses": ["dean@arcworc.com", "clint@arcworc.com"]}],
+  "ratelimits": [{"name": "ENQUIRY_LIMIT", "namespace_id": "2026102001", "simple": {"limit": 3, "period": 60}}],
+  "routes": [
+    {"pattern": "https://arcworc.com/api/enquiry*", "zone_name": "arcworc.com"},
+    {"pattern": "https://www.arcworc.com/api/enquiry*", "zone_name": "arcworc.com"}
+  ],
+  "observability": {"enabled": true, "logs": {"enabled": true, "invocation_logs": false}}
+}
